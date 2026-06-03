@@ -1,4 +1,5 @@
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const pool = mysql.createPool({
@@ -42,6 +43,26 @@ async function initDB() {
         FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
       )
     `);
+
+    // Tabel users
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Cek apakah ada admin
+    const [rows] = await connection.query('SELECT * FROM users WHERE username = ?', ['admin']);
+    if (rows.length === 0) {
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      await connection.query('INSERT INTO users (username, password) VALUES (?, ?)', ['admin', hashedPassword]);
+      console.log('Akun default (admin/admin123) berhasil dibuat.');
+    } else {
+      console.log('Akun admin sudah ada.');
+    }
 
     connection.release();
 
