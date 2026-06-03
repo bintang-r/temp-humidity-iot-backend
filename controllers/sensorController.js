@@ -109,3 +109,27 @@ exports.getDashboardStats = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.getLatestByDevice = async (req, res) => {
+  try {
+    const deviceId = parseInt(req.params.device_id);
+    if (!deviceId) return res.status(400).json({ message: 'device_id is required' });
+
+    const [rows] = await pool.query(`
+      SELECT sl.id, sl.device_id, d.device_name, sl.temperature, sl.humidity, sl.created_at
+      FROM sensor_logs sl
+      JOIN devices d ON sl.device_id = d.id
+      WHERE sl.device_id = ?
+      ORDER BY sl.id DESC
+      LIMIT 1
+    `, [deviceId]);
+
+    if (rows.length === 0) {
+      return res.json(null);
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

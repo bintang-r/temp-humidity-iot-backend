@@ -12,5 +12,6 @@ router.delete('/devices/:id', deviceController.deleteDevice);
 router.post('/sensor/data', sensorController.ingestData);
 router.get('/sensor/history', sensorController.getHistory);
 router.get('/sensor/dashboard', sensorController.getDashboardStats);
+router.get('/sensor/latest/:device_id', sensorController.getLatestByDevice);
 
 module.exports = router;
