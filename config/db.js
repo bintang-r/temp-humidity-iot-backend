@@ -2,10 +2,11 @@ const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'dht_realtime',
+  host: process.env.DB_HOST || '127.0.0.1',
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -13,20 +14,14 @@ const pool = mysql.createPool({
 
 async function initDB() {
   try {
-    // We will attempt to connect, and if the DB doesn't exist, we should theoretically create it
-    // But connection pools require the database to exist if specified in config.
-    // Instead, let's create a temporary connection without database selected to create it if not exists
-    const tempCon = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-    });
-    
-    await tempCon.query(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME || 'dht_realtime'}`);
-    await tempCon.end();
+    // Test koneksi
+    const connection = await pool.getConnection();
 
-    // Now initialize tables using the pool
-    await pool.query(`
+    console.log('Connected to MySQL successfully');
+    console.log(`Database: ${process.env.DB_DATABASE}`);
+
+    // Tabel devices
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS devices (
         id INT AUTO_INCREMENT PRIMARY KEY,
         device_name VARCHAR(255) NOT NULL,
@@ -36,7 +31,8 @@ async function initDB() {
       )
     `);
 
-    await pool.query(`
+    // Tabel sensor_logs
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS sensor_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
         device_id INT NOT NULL,
@@ -47,22 +43,7 @@ async function initDB() {
       )
     `);
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Ensure default admin exists
-    const bcrypt = require('bcryptjs');
-    const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', ['admin']);
-    if (rows.length === 0) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-      await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', ['admin', hashedPassword]);
-    }
+    connection.release();
 
     console.log('Database and tables initialized successfully');
   } catch (error) {
@@ -70,4 +51,7 @@ async function initDB() {
   }
 }
 
-module.exports = { pool, initDB };
+module.exports = {
+  pool,
+  initDB
+};
