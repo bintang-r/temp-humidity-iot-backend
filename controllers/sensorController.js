@@ -48,14 +48,33 @@ exports.ingestData = async (req, res) => {
 exports.getHistory = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 100;
-    const [rows] = await pool.query(`
-      SELECT sl.id, sl.device_id, d.device_name, sl.temperature, sl.humidity, sl.created_at
-      FROM sensor_logs sl
-      JOIN devices d ON sl.device_id = d.id
-      ORDER BY sl.id DESC
-      LIMIT ?
-    `, [limit]);
-    
+    const deviceId = req.query.device_id ? parseInt(req.query.device_id) : null;
+
+    let query;
+    let params;
+
+    if (deviceId) {
+      query = `
+        SELECT sl.id, sl.device_id, d.device_name, sl.temperature, sl.humidity, sl.created_at
+        FROM sensor_logs sl
+        JOIN devices d ON sl.device_id = d.id
+        WHERE sl.device_id = ?
+        ORDER BY sl.id DESC
+        LIMIT ?
+      `;
+      params = [deviceId, limit];
+    } else {
+      query = `
+        SELECT sl.id, sl.device_id, d.device_name, sl.temperature, sl.humidity, sl.created_at
+        FROM sensor_logs sl
+        JOIN devices d ON sl.device_id = d.id
+        ORDER BY sl.id DESC
+        LIMIT ?
+      `;
+      params = [limit];
+    }
+
+    const [rows] = await pool.query(query, params);
     // Return sorted by oldest first for charts
     res.json(rows.reverse());
   } catch (error) {
