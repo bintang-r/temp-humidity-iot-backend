@@ -51,36 +51,48 @@ exports.ingestData = async (req, res) => {
 
 exports.getHistory = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 100;
+    const limit = parseInt(req.query.limit) || 10;
+    const page  = parseInt(req.query.page)  || 1;
+    const offset = (page - 1) * limit;
     const deviceId = req.query.device_id ? parseInt(req.query.device_id) : null;
 
-    let query;
-    let params;
+    let dataQuery, countQuery, dataParams, countParams;
 
     if (deviceId) {
-      query = `
+      countQuery  = `SELECT COUNT(*) as total FROM sensor_logs WHERE device_id = ?`;
+      countParams = [deviceId];
+      dataQuery   = `
         SELECT sl.id, sl.device_id, d.device_name, sl.temperature, sl.humidity, sl.created_at
         FROM sensor_logs sl
         JOIN devices d ON sl.device_id = d.id
         WHERE sl.device_id = ?
         ORDER BY sl.id DESC
-        LIMIT ?
+        LIMIT ? OFFSET ?
       `;
-      params = [deviceId, limit];
+      dataParams = [deviceId, limit, offset];
     } else {
-      query = `
+      countQuery  = `SELECT COUNT(*) as total FROM sensor_logs`;
+      countParams = [];
+      dataQuery   = `
         SELECT sl.id, sl.device_id, d.device_name, sl.temperature, sl.humidity, sl.created_at
         FROM sensor_logs sl
         JOIN devices d ON sl.device_id = d.id
         ORDER BY sl.id DESC
-        LIMIT ?
+        LIMIT ? OFFSET ?
       `;
-      params = [limit];
+      dataParams = [limit, offset];
     }
 
-    const [rows] = await pool.query(query, params);
-    // Return sorted by oldest first for charts
-    res.json(rows.reverse());
+    const [[{ total }]] = await pool.query(countQuery, countParams);
+    const [rows] = await pool.query(dataQuery, dataParams);
+
+    res.json({
+      data: rows,       // Newest first (DESC)
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
