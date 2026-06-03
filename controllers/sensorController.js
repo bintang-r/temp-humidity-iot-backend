@@ -8,14 +8,18 @@ exports.ingestData = async (req, res) => {
       return res.status(400).json({ message: 'api_token, temperature, and humidity are required' });
     }
 
-    // Validate token and get device_id
-    const [devices] = await pool.query('SELECT id, device_name FROM devices WHERE api_token = ?', [api_token]);
+    // Validate token and get device
+    const [devices] = await pool.query('SELECT id, device_name, is_active FROM devices WHERE api_token = ?', [api_token]);
     
     if (devices.length === 0) {
       return res.status(401).json({ message: 'Invalid API Token' });
     }
 
     const device = devices[0];
+    
+    if (!device.is_active) {
+      return res.status(403).json({ message: 'Device is blocked/inactive' });
+    }
 
     // Insert log
     const [result] = await pool.query(

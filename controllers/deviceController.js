@@ -3,7 +3,7 @@ const crypto = require('crypto');
 
 exports.getAllDevices = async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, device_name, api_token, created_at FROM devices ORDER BY id DESC');
+    const [rows] = await pool.query('SELECT id, device_name, api_token, is_active, created_at FROM devices ORDER BY id DESC');
     res.json(rows);
   } catch (error) {
     console.error(error);
@@ -42,6 +42,23 @@ exports.deleteDevice = async (req, res) => {
     const { id } = req.params;
     await pool.query('DELETE FROM devices WHERE id = ?', [id]);
     res.json({ message: 'Device deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.toggleDeviceStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    
+    if (is_active === undefined) {
+      return res.status(400).json({ message: 'is_active is required' });
+    }
+
+    await pool.query('UPDATE devices SET is_active = ? WHERE id = ?', [is_active, id]);
+    res.json({ message: 'Device status updated successfully' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });

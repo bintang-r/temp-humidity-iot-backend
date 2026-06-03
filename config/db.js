@@ -31,6 +31,7 @@ async function initDB() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         device_name VARCHAR(255) NOT NULL,
         api_token VARCHAR(255) UNIQUE NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);

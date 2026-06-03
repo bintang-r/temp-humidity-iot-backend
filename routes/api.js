@@ -7,6 +7,7 @@ const sensorController = require('../controllers/sensorController');
 router.get('/devices', deviceController.getAllDevices);
 router.post('/devices', deviceController.createDevice);
 router.delete('/devices/:id', deviceController.deleteDevice);
+router.put('/devices/:id/toggle', deviceController.toggleDeviceStatus);
 
 // Sensor Data Routes
 router.post('/sensor/data', sensorController.ingestData);
