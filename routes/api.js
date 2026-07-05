@@ -3,6 +3,7 @@ const router = express.Router();
 const deviceController = require('../controllers/deviceController');
 const sensorController = require('../controllers/sensorController');
 const authController = require('../controllers/authController');
+const settingsController = require('../controllers/settingsController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Auth Routes
@@ -23,5 +24,9 @@ router.post('/sensor/data', sensorController.ingestData);
 router.get('/sensor/history', authMiddleware, sensorController.getHistory);
 router.get('/sensor/dashboard', authMiddleware, sensorController.getDashboardStats);
 router.get('/sensor/latest/:device_id', authMiddleware, sensorController.getLatestByDevice);
+
+// Settings Routes (Protected)
+router.get('/settings', authMiddleware, settingsController.getSettings);
+router.put('/settings', authMiddleware, settingsController.updateSettings);
 
 module.exports = router;

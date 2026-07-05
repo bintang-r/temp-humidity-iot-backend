@@ -64,6 +64,27 @@ async function initDB() {
       console.log('Akun admin sudah ada.');
     }
 
+    // Tabel sensor_settings
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS sensor_settings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        max_temp DECIMAL(5,2) NOT NULL DEFAULT 35.00,
+        min_temp DECIMAL(5,2) NOT NULL DEFAULT 20.00,
+        max_hum DECIMAL(5,2) NOT NULL DEFAULT 80.00,
+        min_hum DECIMAL(5,2) NOT NULL DEFAULT 40.00,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Insert default settings if empty
+    const [settingRows] = await connection.query('SELECT * FROM sensor_settings');
+    if (settingRows.length === 0) {
+      await connection.query('INSERT INTO sensor_settings (max_temp, min_temp, max_hum, min_hum) VALUES (?, ?, ?, ?)', [35.00, 20.00, 80.00, 40.00]);
+      console.log('Pengaturan default sensor berhasil dibuat.');
+    } else {
+      console.log('Pengaturan sensor sudah ada.');
+    }
+
     connection.release();
 
     console.log('Database and tables initialized successfully');
