@@ -94,3 +94,64 @@ exports.updateAccount = async (req, res) => {
     res.status(500).json({ message: 'Terjadi kesalahan pada server' });
   }
 };
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT id, username, created_at FROM users');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+  }
+};
+
+exports.createUser = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ message: 'Username dan password harus diisi' });
+    }
+
+    const [existing] = await pool.query('SELECT id FROM users WHERE username = ?', [username]);
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'Username sudah terdaftar' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const [result] = await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword]);
+    
+    res.json({ message: 'Pengguna berhasil ditambahkan', user: { id: result.insertId, username } });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Jangan izinkan admin menghapus dirinya sendiri
+    if (Number(id) === Number(req.user.id)) {
+      return res.status(400).json({ message: 'Anda tidak dapat menghapus akun Anda sendiri' });
+    }
+
+    // Pastikan setidaknya ada 1 admin tersisa di db (opsional, tapi baik untuk keamanan)
+    const [users] = await pool.query('SELECT id FROM users');
+    if (users.length <= 1) {
+      return res.status(400).json({ message: 'Tidak dapat menghapus pengguna terakhir' });
+    }
+
+    const [result] = await pool.query('DELETE FROM users WHERE id = ?', [id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
+    }
+
+    res.json({ message: 'Pengguna berhasil dihapus' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+  }
+};

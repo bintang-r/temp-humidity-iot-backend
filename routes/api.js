@@ -6,9 +6,12 @@ const authController = require('../controllers/authController');
 const settingsController = require('../controllers/settingsController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Auth Routes
+// Auth & User Routes
 router.post('/auth/login', authController.login);
 router.put('/auth/account', authMiddleware, authController.updateAccount);
+router.get('/users', authMiddleware, authController.getAllUsers);
+router.post('/users', authMiddleware, authController.createUser);
+router.delete('/users/:id', authMiddleware, authController.deleteUser);
 
 // Devices Routes (Protected)
 router.get('/devices', authMiddleware, deviceController.getAllDevices);

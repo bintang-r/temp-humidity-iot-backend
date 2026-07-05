@@ -42,7 +42,15 @@ exports.ingestData = async (req, res) => {
       io.emit('new_sensor_data', newLog);
     }
 
-    res.status(201).json({ message: 'Data logged successfully', data: newLog });
+    // Ambil batas pengaturan terbaru untuk dikirim kembali ke perangkat (ESP32)
+    const [settingsRows] = await pool.query('SELECT * FROM sensor_settings LIMIT 1');
+    const settings = settingsRows.length > 0 ? settingsRows[0] : null;
+
+    res.status(201).json({ 
+      message: 'Data logged successfully', 
+      data: newLog,
+      settings: settings
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
