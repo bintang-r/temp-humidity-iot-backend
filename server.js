@@ -5,6 +5,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const apiRoutes = require('./routes/api');
 const { initDB } = require('./config/db');
+const { logError } = require('./utils/logger');
 
 const app = express();
 const server = http.createServer(app);
@@ -40,6 +41,26 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });
+});
+
+// Global Error Handling Middleware
+app.use((err, req, res, next) => {
+  logError('BACKEND_EXPRESS', {
+    message: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method
+  });
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
+// Process-level Error Handlers
+process.on('uncaughtException', (err) => {
+  logError('BACKEND_UNCAUGHT_EXCEPTION', { message: err.message, stack: err.stack });
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logError('BACKEND_UNHANDLED_REJECTION', { reason: reason });
 });
 
 const PORT = process.env.PORT || 5000;

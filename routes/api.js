@@ -32,4 +32,12 @@ router.get('/sensor/latest/:device_id', authMiddleware, sensorController.getLate
 router.get('/settings', authMiddleware, settingsController.getSettings);
 router.put('/settings', authMiddleware, settingsController.updateSettings);
 
+// Frontend logs endpoint
+const { logError } = require('../utils/logger');
+router.post('/logs', (req, res) => {
+    const errorInfo = req.body;
+    logError('FRONTEND', errorInfo);
+    res.status(200).json({ success: true });
+});
+
 module.exports = router;
